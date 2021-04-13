@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Plugins, CameraResultType, Capacitor, FilesystemDirectory, CameraPhoto, CameraSource } from '@capacitor/core';
 import { Platform } from '@ionic/angular';
 
-const { Camera, Filesystem, Storage } = Plugins;
+const { Camera, Filesystem, Storage, Geolocation } = Plugins;
 
 @Injectable({
   providedIn: 'root'
@@ -28,7 +28,7 @@ export class PhotoService {
         // Read each saved photo's data from the Filesystem
         const readFile = await Filesystem.readFile({
             path: photo.filepath,
-            directory: FilesystemDirectory.Data
+            directory: FilesystemDirectory.Documents
         });
       
         // Web platform only: Load the photo as base64 data
@@ -47,11 +47,15 @@ export class PhotoService {
   // https://capacitor.ionicframework.com/docs/apis/storage
   */
   public async addNewToGallery() {
+    const coordinates = await Geolocation.getCurrentPosition();
     // Take a photo
     const capturedPhoto = await Camera.getPhoto({
       resultType: CameraResultType.Uri, // file-based data; provides best performance
       source: CameraSource.Camera, // automatically take a new photo with the camera
-      quality: 100 // highest quality (0 to 100)
+      quality: 100, // highest quality (0 to 100)
+      width: 1280,
+      height: 1280,
+      preserveAspectRatio: true
     });
     
     const savedImageFile = await this.savePicture(capturedPhoto);
@@ -76,7 +80,7 @@ export class PhotoService {
     const savedFile = await Filesystem.writeFile({
       path: fileName,
       data: base64Data,
-      directory: FilesystemDirectory.Data
+      directory: FilesystemDirectory.Documents
     });
 
     if (this.platform.is('hybrid')) {
@@ -132,7 +136,7 @@ export class PhotoService {
     const filename = photo.filepath.substr(photo.filepath.lastIndexOf('/') + 1);
     await Filesystem.deleteFile({
       path: filename,
-      directory: FilesystemDirectory.Data
+      directory: FilesystemDirectory.Documents
     });
   }
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Plugins, CameraResultType, Capacitor, FilesystemDirectory, CameraPhoto, CameraSource } from '@capacitor/core';
+import { Plugins, CameraResultType, Capacitor, FilesystemDirectory, CameraPhoto, CameraSource, GetUriResult } from '@capacitor/core';
 import { Platform } from '@ionic/angular';
 
 const { Camera, Filesystem, Storage, Geolocation } = Plugins;
@@ -54,10 +54,10 @@ export class PhotoService {
       source: CameraSource.Camera, // automatically take a new photo with the camera
       quality: 100, // highest quality (0 to 100)
       width: 1280,
-      height: 1280,
-      preserveAspectRatio: true
+      height: 1280
+      // preserveAspectRatio: true
     });
-    
+
     const savedImageFile = await this.savePicture(capturedPhoto);
 
     // Add new photo to Photos array
@@ -72,15 +72,22 @@ export class PhotoService {
 
   // Save picture to file on device
   private async savePicture(cameraPhoto: CameraPhoto) {
-    // Convert photo to base64 format, required by Filesystem API to save
-    const base64Data = await this.readAsBase64(cameraPhoto);
 
-    // Write the file to the data directory
-    const fileName = new Date().getTime() + '.jpeg';
-    const savedFile = await Filesystem.writeFile({
+    // extract just the filename for the Filesystem API
+    const photoFilename = cameraPhoto.path.substr(cameraPhoto.path.lastIndexOf('/') + 1);
+
+    const fileName = new Date().getTime() + '.jpg';
+
+    await Filesystem.copy({
+      from: photoFilename,
+      directory: FilesystemDirectory.Cache,
+      to: fileName,
+      toDirectory: FilesystemDirectory.Data
+    });
+
+    const savedFile: GetUriResult = await Filesystem.getUri({
       path: fileName,
-      data: base64Data,
-      directory: FilesystemDirectory.Documents
+      directory: FilesystemDirectory.Data
     });
 
     if (this.platform.is('hybrid')) {
